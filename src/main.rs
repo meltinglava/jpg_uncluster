@@ -26,7 +26,12 @@ impl PngDateTime {
         }
     }
 
-    fn copy_file_to_dest(&self, root_dir: &Path, target_root: &Path, key_map: &mut HashMap<String, usize>) -> io::Result<()> {
+    fn copy_file_to_dest(
+        &self,
+        root_dir: &Path,
+        target_root: &Path,
+        key_map: &mut HashMap<String, usize>,
+    ) -> io::Result<()> {
         let entry = key_map.entry(self.s.clone());
         let value = entry.or_insert(0);
         *value += 1;
@@ -37,7 +42,12 @@ impl PngDateTime {
         let r = &self.s[0..4];
         let year_root = target_root.join(r);
         create_dir(&year_root)?;
-        fs::copy(root_dir, year_root.join(self.s.clone() + &duplicate_value).with_extension("jpg"))?;
+        fs::copy(
+            root_dir,
+            year_root
+                .join(self.s.clone() + &duplicate_value)
+                .with_extension("jpg"),
+        )?;
         Ok(())
     }
 }
