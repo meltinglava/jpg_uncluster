@@ -1,0 +1,10 @@
+[package]
+name = "jpeg_fix"
+version = "0.1.0"
+authors = ["Meltinglava <roi1996@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "*"
+walkdir = "*"
+kamadak-exif = "*"
