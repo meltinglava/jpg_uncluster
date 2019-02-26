@@ -53,7 +53,7 @@ fn create_dir(path: &Path) -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
-    let matches = clap_app!(png_fix =>
+    let matches = clap_app!(jpg_uncluster =>
                             (version: "0.0.1")
                             (author: "Roald Strangstadstuen")
                             (about: "Standarizes jpeg cluster into nicer standard")
