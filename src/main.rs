@@ -8,7 +8,7 @@ use std::{
     path::Path,
 };
 
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use walkdir::WalkDir;
 
 struct PngDateTime {
@@ -31,6 +31,7 @@ impl PngDateTime {
         root_dir: &Path,
         target_root: &Path,
         key_map: &mut HashMap<String, usize>,
+        folder_map: &mut HashSet<String>,
     ) -> io::Result<()> {
         let entry = key_map.entry(self.s.clone());
         let value = entry.or_insert(0);
@@ -41,7 +42,9 @@ impl PngDateTime {
         };
         let r = &self.s[0..4];
         let year_root = target_root.join(r);
-        create_dir(&year_root)?;
+        if folder_map.insert(r.to_string()) {
+            create_dir(&year_root)?;
+        }
         fs::copy(
             root_dir,
             year_root
@@ -54,11 +57,11 @@ impl PngDateTime {
 
 fn create_dir(path: &Path) -> io::Result<()> {
     match fs::create_dir(path) {
-        Ok(_) => Ok(()),
         Err(e) => match e.kind() {
             ErrorKind::AlreadyExists => Ok(()),
             _ => Err(e),
         },
+        n => n
     }
 }
 
@@ -74,6 +77,7 @@ fn main() -> io::Result<()> {
     let target_root = Path::new(matches.value_of("target").unwrap());
     create_dir(target_root)?;
     let mut key_counter = HashMap::new();
+    let mut folder_counter = HashSet::new();
     let copied = WalkDir::new(matches.value_of("input").unwrap())
         .same_file_system(true)
         .follow_links(false)
@@ -93,7 +97,7 @@ fn main() -> io::Result<()> {
         })
         .map(|f| {
             let dt = PngDateTime::get_date_time(f.path());
-            dt.copy_file_to_dest(f.path(), target_root, &mut key_counter)
+            dt.copy_file_to_dest(f.path(), target_root, &mut key_counter, &mut folder_counter)
         })
         .count();
     println!("Number of pictures copied: {}", copied);
