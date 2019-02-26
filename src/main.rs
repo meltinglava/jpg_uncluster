@@ -2,11 +2,13 @@
 extern crate clap;
 
 use std::{
+    borrow::Cow,
     fs::{self, File},
     io::{self, BufReader, ErrorKind},
     path::Path,
 };
 
+use hashbrown::HashMap;
 use walkdir::WalkDir;
 
 struct PngDateTime {
@@ -24,11 +26,18 @@ impl PngDateTime {
         }
     }
 
-    fn copy_file_to_dest(&self, root_dir: &Path, target_root: &Path) -> io::Result<()> {
+    fn copy_file_to_dest(&self, root_dir: &Path, target_root: &Path, key_map: &mut HashMap<String, usize>) -> io::Result<()> {
+        let entry = key_map.entry(self.s.clone());
+        let value = entry.or_insert(0);
+        *value += 1;
+        let duplicate_value = match value {
+            1 => Cow::Borrowed(""),
+            n => Cow::Owned("-".to_string() + &n.to_string()),
+        };
         let r = &self.s[0..4];
         let year_root = target_root.join(r);
         create_dir(&year_root)?;
-        fs::copy(root_dir, year_root.join(&self.s).with_extension("jpg"))?;
+        fs::copy(root_dir, year_root.join(self.s.clone() + &duplicate_value).with_extension("jpg"))?;
         Ok(())
     }
 }
@@ -54,6 +63,7 @@ fn main() -> io::Result<()> {
     .get_matches();
     let target_root = Path::new(matches.value_of("target").unwrap());
     create_dir(target_root)?;
+    let mut key_counter = HashMap::new();
     let copied = WalkDir::new(matches.value_of("input").unwrap())
         .same_file_system(true)
         .follow_links(false)
@@ -73,7 +83,7 @@ fn main() -> io::Result<()> {
         })
         .map(|f| {
             let dt = PngDateTime::get_date_time(f.path());
-            dt.copy_file_to_dest(f.path(), target_root)
+            dt.copy_file_to_dest(f.path(), target_root, &mut key_counter)
         })
         .count();
     println!("Number of pictures copied: {}", copied);
