@@ -66,6 +66,7 @@ fn create_dir(path: &Path) -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
+    let file_extentions = &["jpg", "jpeg"];
     let matches = clap_app!(jpg_uncluster =>
                             (version: "0.0.1")
                             (author: "Roald Strangstadstuen")
@@ -89,7 +90,7 @@ fn main() -> io::Result<()> {
                 .extension()
                 .filter(|n| {
                     n.to_str()
-                        .map(|c| c.eq_ignore_ascii_case("jpg"))
+                        .map(|c| file_extentions.iter().map(|s| c.eq_ignore_ascii_case(s)).any(|b| b))
                         .filter(|&n| n)
                         .is_some()
                 })
