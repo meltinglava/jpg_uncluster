@@ -16,14 +16,14 @@ struct PngDateTime {
 }
 
 impl PngDateTime {
-    fn get_date_time(path: &Path) -> Self {
+    fn get_date_time(path: &Path) -> Option<Self> {
         let file = File::open(path).unwrap();
         let exif = exif::Reader::new(&mut BufReader::new(&file)).unwrap();
         let dt_tag = exif::Tag::DateTimeOriginal;
-        let dt_field = exif.get_field(dt_tag, false).unwrap();
-        Self {
+        let dt_field = exif.get_field(dt_tag, false)?;
+        Some(Self {
             s: format!("{}", dt_field.value.display_as(dt_tag)),
-        }
+        })
     }
 
     fn copy_file_to_dest(
@@ -61,7 +61,7 @@ fn create_dir(path: &Path) -> io::Result<()> {
             ErrorKind::AlreadyExists => Ok(()),
             _ => Err(e),
         },
-        n => n
+        n => n,
     }
 }
 
@@ -90,15 +90,27 @@ fn main() -> io::Result<()> {
                 .extension()
                 .filter(|n| {
                     n.to_str()
-                        .map(|c| file_extentions.iter().map(|s| c.eq_ignore_ascii_case(s)).any(|b| b))
+                        .map(|c| {
+                            file_extentions
+                                .iter()
+                                .map(|s| c.eq_ignore_ascii_case(s))
+                                .any(|b| b)
+                        })
                         .filter(|&n| n)
                         .is_some()
                 })
                 .is_some()
         })
-        .map(|f| {
-            let dt = PngDateTime::get_date_time(f.path());
-            dt.copy_file_to_dest(f.path(), target_root, &mut key_counter, &mut folder_counter)
+        .map(|f| match PngDateTime::get_date_time(f.path()) {
+            Some(dt) => {
+                dt.copy_file_to_dest(f.path(), target_root, &mut key_counter, &mut folder_counter)
+                    .unwrap();
+            }
+            None => {
+                let no_date_root = target_root.join("no_date_found");
+                create_dir(&no_date_root).unwrap();
+                fs::copy(f.path(), no_date_root.join(f.path().file_name().unwrap())).unwrap();
+            }
         })
         .count();
     println!("Number of pictures copied: {}", copied);
